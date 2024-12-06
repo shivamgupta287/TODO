@@ -5,6 +5,7 @@ const nextConfig = {
   experimental: {
     // This will make Next.js more tolerant of hydration mismatches
     optimizeFonts: true,
+    swcMinify: true,
     scrollRestoration: true,
   },
 }

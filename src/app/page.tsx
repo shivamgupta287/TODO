@@ -12,6 +12,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Task {
   id: string;
@@ -47,11 +53,24 @@ const initialTasks: Task[] = [
 
 export default function TaskPage() {
   const [mounted, setMounted] = useState(false);
-  const [tasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState(initialTasks);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleSort = (direction: 'asc' | 'desc') => {
+    const sortedTasks = [...tasks].sort((a, b) => {
+      if (direction === 'asc') {
+        return a.title.localeCompare(b.title);
+      } else {
+        return b.title.localeCompare(a.title);
+      }
+    });
+    setTasks(sortedTasks);
+    setSortDirection(direction);
+  };
 
   if (!mounted) {
     return null;
@@ -175,7 +194,72 @@ export default function TaskPage() {
                   />
                 </TableHead>
                 <TableHead>Task</TableHead>
-                <TableHead>Title</TableHead>
+                <TableHead>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-2 hover:text-accent-foreground">
+                      Title
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m6 9 6 6 6-6"/>
+                      </svg>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => handleSort('asc')}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mr-2"
+                        >
+                          <path d="m3 8 4-4 4 4"/>
+                          <path d="M7 4v16"/>
+                          <path d="M11 12h10"/>
+                          <path d="M11 16h7"/>
+                          <path d="M11 20h4"/>
+                          <path d="M11 8h13"/>
+                        </svg>
+                        Sort A to Z
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSort('desc')}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mr-2"
+                        >
+                          <path d="m3 16 4 4 4-4"/>
+                          <path d="M7 20V4"/>
+                          <path d="M11 12h10"/>
+                          <path d="M11 16h7"/>
+                          <path d="M11 20h4"/>
+                          <path d="M11 8h13"/>
+                        </svg>
+                        Sort Z to A
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
