@@ -1,17 +1,10 @@
-'use client'
+"use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { TaskTable } from "@/components/tasks/TaskTable";
+import { TaskFilters } from "@/components/tasks/TaskFilters";
+import { TaskHeader } from "@/components/tasks/TaskHeader";
+import { Pagination } from "@/components/tasks/Pagination";
 
 interface Task {
   id: string;
@@ -21,289 +14,153 @@ interface Task {
   priority: string;
 }
 
-const initialTasks: Task[] = [
-  {
-    id: "TASK-A",
-    type: "Documentation",
-    title: "Description of Task A",
-    status: "In Progress",
-    priority: "Medium",
-  },
-  {
-    id: "TASK-B",
-    type: "Documentation",
-    title: "Description of Task B",
-    status: "Backlog",
-    priority: "Medium",
-  },
-  {
-    id: "TASK-C",
-    type: "Bug",
-    title: "Description of Task C",
-    status: "Todo",
-    priority: "High",
-  },
-];
-
 export default function TaskPage() {
   const [mounted, setMounted] = useState(false);
-  const [tasks] = useState(initialTasks);
+  const [loading, setLoading] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = 
+    useState<`${string}-${"asc" | "desc"}`>("title-asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<"title" | "status" | "priority">(
+    "title"
+  );
+
+  const fetchTasks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: rowsPerPage.toString(),
+        ...(statusFilter && { status: statusFilter }),
+        ...(priorityFilter && { priority: priorityFilter }),
+        ...(sortDirection && { sort: sortDirection }),
+      });
+
+      const response = await fetch(`/api/todoList?${params}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch tasks");
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setTasks(data.tasks);
+        setTotalPages(data.totalPages);
+        setTotalItems(data.totalItems);
+      }
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, rowsPerPage, statusFilter, priorityFilter, sortDirection]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchTasks();
+    }
+  }, [mounted, currentPage, rowsPerPage, statusFilter, priorityFilter]);
+
+  const handleStatusFilter = (status: string | null) => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+    fetchTasks();
+  };
+
+  const handleSort = async (
+    direction: "asc" | "desc",
+    column: "title" | "status" | "priority"
+  ) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: rowsPerPage.toString(),
+        sort: direction,
+        sortColumn: column,
+        ...(statusFilter && { status: statusFilter }),
+        ...(priorityFilter && { priority: priorityFilter }),
+      });
+
+      const response = await fetch(`/api/todoList?${params}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch tasks");
+      }
+      const data = await response.json();
+      if (data.success) {
+        setTasks(data.tasks);
+        setTotalPages(data.totalPages);
+        setTotalItems(data.totalItems);
+        setSortDirection(`${column}-${direction}`);
+        setSortColumn(column);
+      }
+    } catch (error) {
+      console.error("Failed to sort tasks:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = async (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleRowsPerPageChange = async (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const newRowsPerPage = parseInt(event.target.value);
+    setRowsPerPage(newRowsPerPage);
+    setCurrentPage(1);
+  };
+
+  const handlePriorityFilter = (priority: string | null) => {
+    setPriorityFilter(priority);
+    setCurrentPage(1);
+    fetchTasks();
+  };
 
   if (!mounted) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Welcome Header */}
-      <div className="p-8 pb-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">Welcome back!</h1>
-            <p className="text-muted-foreground mt-1">
-              Here's a list of your tasks for this month!
-            </p>
-          </div>
-          <button className="rounded-full bg-background size-10 flex items-center justify-center border">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </button>
-        </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <TaskHeader />
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 mt-8">
-          <Input 
-            placeholder="Filter tasks..." 
-            className="max-w-xs bg-background"
-          />
-          <Button 
-            variant="outline" 
-            className="bg-background border-border hover:bg-accent hover:text-accent-foreground"
-          >
-            <div className="flex items-center gap-2">
-              Status
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-muted-foreground"
-              >
-                <path d="M12 5v14" />
-                <path d="M5 12h14" />
-              </svg>
-            </div>
-          </Button>
-          <Button 
-            variant="outline" 
-            className="bg-background border-border hover:bg-accent hover:text-accent-foreground"
-          >
-            <div className="flex items-center gap-2">
-              Priority
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-muted-foreground"
-              >
-                <path d="M12 5v14" />
-                <path d="M5 12h14" />
-              </svg>
-            </div>
-          </Button>
-          <div className="ml-auto">
-            <Button variant="outline" className="gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect width="7" height="7" x="3" y="3" rx="1" />
-                <rect width="7" height="7" x="14" y="3" rx="1" />
-                <rect width="7" height="7" x="14" y="14" rx="1" />
-                <rect width="7" height="7" x="3" y="14" rx="1" />
-              </svg>
-              View
-            </Button>
-          </div>
-        </div>
-      </div>
+      <TaskFilters
+        uniqueStatuses={["Todo", "In Progress", "Done", "Backlog"]}
+        uniquePriorities={["High", "Medium", "Low"]}
+        statusFilter={statusFilter}
+        priorityFilter={priorityFilter}
+        handleStatusFilter={handleStatusFilter}
+        handlePriorityFilter={handlePriorityFilter}
+      />
+      
+      <TaskTable
+        tasks={tasks}
+        loading={loading}
+        sortDirection={sortDirection}
+        handleSort={handleSort}
+      />
 
-      {/* Existing Task Table */}
-      <div className="p-8 pt-4">
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[30px]">
-                  <input 
-                    type="checkbox" 
-                    className="h-4 w-4 rounded-sm border border-input"
-                  />
-                </TableHead>
-                <TableHead>Task</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((task) => (
-                <TableRow key={task.id} className="hover:bg-muted/50">
-                  <TableCell className="w-[30px]">
-                    <input 
-                      type="checkbox" 
-                      className="h-4 w-4 rounded-sm border border-input"
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{task.id}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-secondary/50">
-                        {task.type}
-                      </Badge>
-                      <span className="font-medium">{task.title}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {task.status === "In Progress" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-muted-foreground"
-                        >
-                          <line x1="10" x2="14" y1="2" y2="2" />
-                          <line x1="12" x2="15" y1="14" y2="11" />
-                          <circle cx="12" cy="14" r="8" />
-                        </svg>
-                      )}
-                      {task.status === "Backlog" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-muted-foreground"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 6v6l4 2" />
-                        </svg>
-                      )}
-                      {task.status === "Todo" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-muted-foreground"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                        </svg>
-                      )}
-                      <span>{task.status}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-muted-foreground"
-                      >
-                        {task.priority === "High" ? (
-                          <path d="m12 19-7-7 7-7" />
-                        ) : (
-                          <path d="M5 12h14" />
-                        )}
-                      </svg>
-                      <span>{task.priority}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-muted-foreground"
-                      >
-                        <circle cx="12" cy="12" r="1" />
-                        <circle cx="19" cy="12" r="1" />
-                        <circle cx="5" cy="12" r="1" />
-                      </svg>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <Pagination
+        totalItems={totalItems}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        handlePageChange={handlePageChange}
+        handleRowsPerPageChange={handleRowsPerPageChange}
+      />
     </div>
   );
 }
