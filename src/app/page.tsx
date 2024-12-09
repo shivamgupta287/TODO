@@ -129,12 +129,42 @@ export default function TaskPage() {
     fetchTasks();
   };
 
+  const handleTaskAdded = useCallback(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
   if (!mounted) {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <TaskHeader onTaskAdded={handleTaskAdded} />
+
+      <TaskFilters
+        uniqueStatuses={["Todo", "In Progress", "Done", "Backlog"]}
+        uniquePriorities={["High", "Medium", "Low"]}
+        statusFilter={statusFilter}
+        priorityFilter={priorityFilter}
+        handleStatusFilter={handleStatusFilter}
+        handlePriorityFilter={handlePriorityFilter}
+      />
+
+      <TaskTable
+        tasks={tasks}
+        loading={loading}
+        sortDirection={sortDirection}
+        handleSort={handleSort}
+      />
+
+      <Pagination
+        totalItems={totalItems}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        handlePageChange={handlePageChange}
+        handleRowsPerPageChange={handleRowsPerPageChange}
+      />
       <TaskHeader />
 
       <TaskFilters
