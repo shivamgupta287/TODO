@@ -22,7 +22,7 @@ export function NewTaskDialog({ onTaskAdded }: NewTaskDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const response = await fetch("/api/todoList", {
         method: "POST",
@@ -94,7 +94,11 @@ export function NewTaskDialog({ onTaskAdded }: NewTaskDialogProps) {
             </select>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit">Create Task</Button>
@@ -103,4 +107,4 @@ export function NewTaskDialog({ onTaskAdded }: NewTaskDialogProps) {
       </DialogContent>
     </Dialog>
   );
-} 
+}

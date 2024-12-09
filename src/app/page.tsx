@@ -19,7 +19,7 @@ export default function TaskPage() {
   const [loading, setLoading] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] =
+  const [sortDirection, setSortDirection] = 
     useState<`${string}-${"asc" | "desc"}`>("title-asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -150,6 +150,32 @@ export default function TaskPage() {
         handlePriorityFilter={handlePriorityFilter}
       />
 
+      <TaskTable
+        tasks={tasks}
+        loading={loading}
+        sortDirection={sortDirection}
+        handleSort={handleSort}
+      />
+
+      <Pagination
+        totalItems={totalItems}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        handlePageChange={handlePageChange}
+        handleRowsPerPageChange={handleRowsPerPageChange}
+      />
+      <TaskHeader />
+
+      <TaskFilters
+        uniqueStatuses={["Todo", "In Progress", "Done", "Backlog"]}
+        uniquePriorities={["High", "Medium", "Low"]}
+        statusFilter={statusFilter}
+        priorityFilter={priorityFilter}
+        handleStatusFilter={handleStatusFilter}
+        handlePriorityFilter={handlePriorityFilter}
+      />
+      
       <TaskTable
         tasks={tasks}
         loading={loading}
